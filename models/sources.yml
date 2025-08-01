@@ -1,0 +1,11 @@
+version: 2
+
+sources:
+  - name: analytics_prod           # Reference name for this source. Can be anything, but matches your dataset by convention.
+    database: summerslam-467512    # For BigQuery: this is your project id
+    schema: analytics_prod         # This is your dataset
+    tables:
+      - name: raw_infobox
+        description: "Raw infobox table extracted from Wikipedia for SummerSlam analytics."
+      - name: raw_results
+        description: "Raw results table extracted from Wikipedia for SummerSlam analytics."
