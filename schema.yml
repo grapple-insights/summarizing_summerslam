@@ -1,0 +1,220 @@
+version: 2
+
+sources:
+  - name: raw_infobox
+    description: Event-level metadata with attendance, venue, location, and date
+    tables:
+      - name: raw_infobox
+
+  - name: raw_results
+    description: Raw match-by-match results with participants, outcomes, stipulations, titles
+    tables:
+      - name: raw_results
+
+models:
+  - name: stage_raw_infobox
+    description: "Staging: cleans and standardizes raw_infobox event metadata"
+    columns:
+      - name: event_name
+        description: "Full event name, as entered in the infobox"
+        tests:
+          - not_null
+      - name: event_year
+        description: "Event's year"
+        tests:
+          - not_null
+      - name: event_city
+        description: "City where event took place"
+      - name: event_state
+        description: "State or region for event (if applicable)"
+      - name: event_country
+        description: "Country of the event"
+      - name: event_venue
+        description: "Venue/stadium name"
+      - name: event_attendance
+        description: "Billed attendance for the event"
+
+  - name: stage_raw_results
+    description: "Staging: cleans, parses, and standardizes raw_results match details"
+    columns:
+      - name: event_name
+        description: "Event name for each match"
+        tests:
+          - not_null
+      - name: event_year
+        description: "Event year"
+        tests:
+          - not_null
+      - name: match_number
+        description: "Order of the match on the card"
+        tests:
+          - not_null
+      - name: match_type
+        description: "Original, parsed match type (e.g., 'Ladder Match', 'Steel Cage')"
+      - name: wrestler_name
+        description: "Raw wrestler/team name, prior to canonical cleaning"
+      - name: match_winner
+        description: "Winner(s) of the match"
+      - name: match_loser
+        description: "Loser(s) of the match"
+      - name: is_championship_match
+        description: "Boolean for title match"
+      - name: match_duration_seconds
+        description: "Length of match in seconds"
+      - name: title
+        description: "Title contested, if applicable"
+
+  - name: dim_wrestler
+    description: "Dimension: unique, canonicalized wrestler, tag team, or stable names"
+    columns:
+      - name: dim_wrestler_key
+        description: "Unique surrogate key"
+        tests:
+          - unique
+          - not_null
+      - name: wrestler_name
+        description: "Canonical wrestler/team/stable name"
+
+  - name: dim_event
+    description: "Dimension: unique events with date/location/venue/attendance"
+    columns:
+      - name: dim_event_key
+        description: "Unique surrogate key"
+        tests:
+          - unique
+          - not_null
+      - name: event_name
+        description: "Name of the event"
+        tests:
+          - not_null
+      - name: event_year
+        description: "Year of the event"
+      - name: event_date
+        description: "Actual calendar date"
+      - name: venue
+        description: "Venue/stadium"
+      - name: location
+        description: "City, state, country string"
+      - name: attendance
+        description: "Attendance for the event"
+
+  - name: dim_venue
+    description: "Dimension: venues and their metadata"
+    columns:
+      - name: dim_venue_key
+        tests: [unique, not_null]
+      - name: venue_name
+        description: "Venue/stadium..."
+
+  - name: dim_location
+    description: "Dimension: unique city/state/country combos"
+    columns:
+      - name: dim_location_key
+        tests: [unique, not_null]
+      - name: city
+      - name: state
+      - name: country
+
+  - name: dim_date
+    description: "Dimension: standard calendar dates for all timeline analysis"
+    columns:
+      - name: dim_date_key
+        tests: [unique, not_null]
+      - name: date
+      - name: year
+      - name: month
+      - name: day
+
+  - name: dim_promotion
+    description: "Dimension: wrestling promotion (WWE, WCW, ECW, etc)"
+    columns:
+      - name: dim_promotion_key
+        tests: [unique, not_null]
+      - name: promotion
+        description: "Promotion/brand name"
+
+  - name: dim_title
+    description: "Dimension: all unique championship titles"
+    columns:
+      - name: dim_title_key
+        tests: [unique, not_null]
+      - name: title
+        description: "Championship title name"
+
+  - name: dim_match_type
+    description: "Dimension: unique match types (normalized, e.g., 'Ladder Match')"
+    columns:
+      - name: dim_match_type_key
+        tests: [unique, not_null]
+      - name: match_type
+
+  - name: bridge_match_wrestler
+    description: "Bridge: connects matches and all credited wrestlers/teams"
+    columns:
+      - name: dim_event_key
+        tests: [not_null]
+      - name: match_number
+      - name: participant_role
+        description: "Role: winner, loser, participant, etc"
+      - name: dim_wrestler_key
+
+  - name: fact_match_metrics
+    description: "Fact: core match-level facts, metrics, and links to all dimensions"
+    columns:
+      - name: dim_event_key
+        tests: [not_null]
+      - name: match_number
+      - name: dim_wrestler_key
+      - name: dim_venue_key
+      - name: dim_location_key
+      - name: dim_promotion_key
+      - name: dim_title_key
+      - name: dim_match_type_key
+      - name: is_championship_match
+      - name: match_duration_seconds
+
+  - name: fact_event_metrics
+    description: "Fact: event-level aggregates—attendance, match count, titles"
+    columns:
+      - name: dim_event_key
+        tests: [unique, not_null]
+      - name: n_matches
+      - name: n_titles
+      - name: attendance
+
+  - name: report_match_metrics
+    description: "Report: flattened, human-friendly match stats and context"
+    columns:
+      - name: event_name
+      - name: event_year
+      - name: event_date
+      - name: promotion
+      - name: title
+      - name: match_type
+      - name: match_number
+      - name: match_duration_seconds
+      - name: is_draw
+      - name: is_championship_match
+      - name: is_special_guest_referee
+
+  - name: report_event_metrics
+    description: "Report: event statistics, attendance, location, match and title trends"
+    columns:
+      - name: event_name
+      - name: event_year
+      - name: event_date
+      - name: venue
+      - name: location
+      - name: attendance
+      - name: n_matches
+      - name: n_titles
+
+  - name: report_result_metrics
+    description: "Report: row per participant with role, for granular win/loss/draw stats"
+    columns:
+      - name: event_name
+      - name: event_year
+      - name: match_number
+      - name: participant_role
+      - name: wrestler_name
+      - name: match_duration_seconds
