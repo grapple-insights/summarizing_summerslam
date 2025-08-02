@@ -1,6 +1,6 @@
 # Summarizing SummerSlam 📊
 
-This dbt project transforms raw wrestling event and match results into a clean, tested, and documented data warehouse for exploring SummerSlam history, superstar careers, title chronicles, venue attendance, and the evolution of specialty match types.
+This dbt project transforms raw wrestling event and match results into a clean, tested, and documented data warehouse for exploring SummerSlam history, superstar careers, titles, attendance, and the evolution of specialty match types.
 
 ---
 
